@@ -1,0 +1,17 @@
+[package]
+name = "rnx2crx"
+version = "1.3.3"
+license = "MPL-2.0"
+authors = ["Guillaume W. Bres <guillaume.bressaix@gmail.com>"]
+description = "RINEX compression command line utility"
+homepage = "https://github.com/rtk-rs/rnx2crx"
+repository = "https://github.com/rtk-rs/rnx2crx"
+keywords = ["geo", "compression"] 
+categories = ["science", "science::geo", "command-line-interface", "command-line-utilities"]
+edition = "2021"
+readme = "README.md"
+
+[dependencies]
+thiserror = "2"
+rinex = "0.17.0-alpha-3"
+clap = { version = "4.4.13", features = ["derive", "color"] }
