@@ -114,11 +114,13 @@ rnx2crx -q -d 2000-01-01 ESBC00DNK_R_20201770000_01D_30S_MO.rnx.gz
 ```
 
 2. `-t HH:MM:SS` let's you customize the CRINEX compression time during that date.
-When `-t` is not specified, we use the system time:
+When `-t` is not specified, we use the system time.
 
 ```bash
 crx2rnx -q -d 2000-01-01 -t 01:02:03 ESBC00DNK_R_20201770000_01D_30S_MO.crx.gz
 ```
+
+When Time is specified without Date, we use the date retrieved from system time and replace the time during that day.
 
 ## Licensing
 

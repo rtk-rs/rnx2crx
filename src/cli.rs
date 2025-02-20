@@ -1,5 +1,4 @@
 use clap::{Arg, ArgAction, ArgMatches, ColorChoice, Command};
-use rinex::prelude::*;
 
 pub struct Cli {
     /// arguments passed by user
@@ -18,9 +17,15 @@ impl Cli {
                     .color(ColorChoice::Always)
                     .arg(
                         Arg::new("filepath")
-                            .help("Input Observation RINEX")
+                            .help("Observation RINEX")
                             .value_name("filepath")
                             .required(true)
+                    )
+                    .arg(
+                        Arg::new("quiet")
+                            .short('q')
+                            .action(ArgAction::SetTrue)
+                            .help("Make the tool quiet")
                     )
                     .arg(
                         Arg::new("short")
@@ -32,8 +37,15 @@ impl Cli {
                         Arg::new("output")
                             .short('o')
                             .action(ArgAction::Set)
+                            .value_name("filename")
                             .conflicts_with_all(["short"])
                             .help("Define custom output name. Overrides any file name determination logic.")
+                    )
+                    .arg(
+                        Arg::new("prefix")
+                            .long("prefix")
+                            .action(ArgAction::Set)
+                            .help("Define custom output location (directory), that must exist")
                     )
                     .arg(
                         Arg::new("date")
@@ -50,42 +62,66 @@ impl Cli {
             },
         }
     }
+
+    pub fn quiet(&self) -> bool {
+        self.matches.get_flag("quiet")
+    }
+
+    pub fn forced_short_v1(&self) -> bool {
+        self.matches.get_flag("short")
+    }
+
     pub fn input_path(&self) -> &str {
         self.matches.get_one::<String>("filepath").unwrap()
     }
-    pub fn output_path(&self) -> Option<&String> {
+
+    pub fn custom_name(&self) -> Option<&String> {
         self.matches.get_one::<String>("output")
     }
-    pub fn custom_date(&self) -> Option<Epoch> {
-        if let Some(s) = self.matches.get_one::<String>("date") {
-            let items: Vec<&str> = s.split('-').collect();
-            if items.len() != 3 {
-                println!("failed to parse \"yyyy-mm-dd\"");
-                return None;
-            } else if let Ok(y) = i32::from_str_radix(items[0], 10) {
-                if let Ok(m) = u8::from_str_radix(items[1], 10) {
-                    if let Ok(d) = u8::from_str_radix(items[2], 10) {
-                        return Some(Epoch::from_gregorian_utc_at_midnight(y, m, d));
-                    }
-                }
-            }
-        }
-        None
+
+    pub fn custom_prefix(&self) -> Option<&String> {
+        self.matches.get_one::<String>("prefix")
     }
-    pub fn custom_time(&self) -> Option<(u8, u8, u8)> {
-        if let Some(s) = self.matches.get_one::<String>("time") {
-            let items: Vec<&str> = s.split(':').collect();
-            if items.len() != 3 {
-                println!("failed to parse \"hh:mm:ss\"");
-                return None;
-            } else if let Ok(h) = u8::from_str_radix(items[0], 10) {
-                if let Ok(m) = u8::from_str_radix(items[1], 10) {
-                    if let Ok(s) = u8::from_str_radix(items[2], 10) {
-                        return Some((h, m, s));
-                    }
-                }
-            }
+
+    /// Returns custom date defined by User
+    pub fn custom_date(&self) -> Option<(i32, u8, u8)> {
+        let date = self.matches.get_one::<String>("date")?;
+        let items: Vec<&str> = date.split('/').collect();
+
+        if items.len() != 3 {
+            panic!("Invalid date description: expecting \"YYYY/MM/DD\"");
         }
-        None
+
+        let yyyy = i32::from_str_radix(items[0], 10)
+            .unwrap_or_else(|e| panic!("Year parsing error: {}", e));
+
+        let mm = u8::from_str_radix(items[1], 10)
+            .unwrap_or_else(|e| panic!("Month parsing error: {}", e));
+
+        let dd =
+            u8::from_str_radix(items[2], 10).unwrap_or_else(|e| panic!("Day parsing error: {}", e));
+
+        Some((yyyy, mm, dd))
+    }
+
+    /// Returns custom datetime defined by User
+    pub fn custom_time(&self) -> Option<(u8, u8, u8)> {
+        let time = self.matches.get_one::<String>("time")?;
+
+        let items: Vec<&str> = time.split(':').collect();
+        if items.len() != 3 {
+            panic!("Invalid time description: expecting \"HH:MM:SS\"");
+        }
+
+        let hh = u8::from_str_radix(items[0], 10)
+            .unwrap_or_else(|e| panic!("Hours parsing error: {}", e));
+
+        let mm = u8::from_str_radix(items[1], 10)
+            .unwrap_or_else(|e| panic!("Minutes parsing error: {}", e));
+
+        let ss = u8::from_str_radix(items[2], 10)
+            .unwrap_or_else(|e| panic!("Seconds parsing error: {}", e));
+
+        Some((hh, mm, ss))
     }
 }

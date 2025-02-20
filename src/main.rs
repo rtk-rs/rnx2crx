@@ -1,10 +1,32 @@
 mod cli;
 use cli::Cli;
 
-use rinex::prelude::Rinex;
+use rinex::prelude::{Epoch, Rinex};
+
+fn compression_date_time(cli: &Cli) -> Epoch {
+    if let Some((y, m, d)) = cli.custom_date() {
+        if let Some((hh, mm, ss)) = cli.custom_time() {
+            Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, 0)
+        } else {
+            Epoch::now().unwrap_or_else(|e| panic!("failed to determine system time: {}", e))
+        }
+    } else {
+        let now = Epoch::now().unwrap_or_else(|e| panic!("failed to determine system time: {}", e));
+
+        let (y, m, d, _, _, _, _) = now.to_gregorian_utc();
+
+        if let Some((hh, mm, ss)) = cli.custom_time() {
+            Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, 0)
+        } else {
+            now
+        }
+    }
+}
 
 fn main() {
     let cli = Cli::new();
+
+    let quiet = cli.quiet();
     let input_path = cli.input_path();
 
     let mut rinex =
@@ -12,35 +34,36 @@ fn main() {
 
     rinex.rnx2crnx_mut();
 
-    if let Some(date) = cli.date() {
-        let (y, m, d, _, _, _, _) = date.to_gregorian_utc();
-        if let Some((hh, mm, ss)) = cli.time() {
-            if let Some(obs) = &mut rinex.header.obs {
-                if let Some(crx) = &mut obs.crinex {
-                    crx.date = Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, 0);
-                }
-            }
-        } else if let Some(obs) = &mut rinex.header.obs {
-            if let Some(crx) = &mut obs.crinex {
-                crx.date = Epoch::from_gregorian_utc_at_midnight(y, m, d);
-            }
+    let version_major;
+
+    if let Some(ref mut obs_header) = rinex.header.obs {
+        if let Some(ref mut crx_header) = obs_header.crinex {
+            version_major = crx_header.version.major;
+            crx_header.date = compression_date_time(&cli);
+        } else {
+            panic!("Internal error: invalid CRINEX content generated.");
         }
-    } else if let Some((hh, mm, ss)) = cli.time() {
-        let today = Epoch::now().expect("failed to retrieve system time");
-        let (y, m, d, _, _, _, _) = today.to_gregorian_utc();
-        if let Some(obs) = &mut rinex.header.obs {
-            if let Some(crx) = &mut obs.crinex {
-                crx.date = Epoch::from_gregorian_utc(y, m, d, hh, mm, ss, 0);
-            }
-        }
+    } else {
+        panic!("Internal error: parsed invalid OBS RINEX content.");
     }
 
-    // output path
-    let output_path = match cli.output_path() {
+    let forced_v1 = cli.forced_short_v1() || version_major == 1;
+
+    let output_name = match cli.custom_name() {
         Some(path) => path.clone(), // use customized name
-        _ => rinex.standard_filename(cli.matches.get_flag("short"), None, None),
+        _ => rinex.standard_filename(forced_v1, None, None),
     };
 
-    rinex.to_file(&output_path)?;
-    println!("{} generated", output_path);
+    let output_path = match cli.custom_prefix() {
+        Some(prefix) => format!("{}/{}", prefix, output_name),
+        None => output_name.to_string(),
+    };
+
+    rinex
+        .to_file(&output_path)
+        .unwrap_or_else(|e| panic!("CRINEX formatting error: {}", e));
+
+    if !quiet {
+        println!("Compressed {}", output_path);
+    }
 }
