@@ -87,7 +87,7 @@ jobs:
         else
           rnx2crx="target/${{ matrix.target }}/release/rnx2crx"
         fi
-        echo "CRX2RNX=$rnx2crx" >> $GITHUB_ENV
+        echo "RNX2CRX=$rnx2crx" >> $GITHUB_ENV
 
     - name: Determine archive name
       shell: bash
@@ -99,7 +99,7 @@ jobs:
       run: |
         mkdir -p "$ARCHIVE"
         cp {README.md,LICENSE} "$ARCHIVE"/
-        cp "$CRX2RNX" "$ARCHIVE"
+        cp "$RNX2CRX" "$ARCHIVE"
 
     - name: Gzip archive (Unix)
       shell: bash
