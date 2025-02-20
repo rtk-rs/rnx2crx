@@ -16,56 +16,35 @@ impl Cli {
                     .about("RINEX compression tool")
                     .arg_required_else_help(true)
                     .color(ColorChoice::Always)
-                    .next_help_heading("Input/Output")
                     .arg(
                         Arg::new("filepath")
-                            .short('f')
-                            .long("fp")
-                            .help("Input RINEX file")
-                            .required(true),
+                            .help("Input Observation RINEX")
+                            .value_name("filepath")
+                            .required(true)
                     )
                     .arg(
                         Arg::new("short")
                             .short('s')
-                            .long("short")
-                            .conflicts_with("output")
                             .action(ArgAction::SetTrue)
-                            .help("Prefer shortened filename convention.
-Otherwise, we default to modern (V3+) long filenames.
-Both will not work well if your input does not follow standard conventions at all."))
+                            .help("Prefer V1 short filename convention")
+                    )
                     .arg(
                         Arg::new("output")
                             .short('o')
-                            .long("output")
                             .action(ArgAction::Set)
                             .conflicts_with_all(["short"])
-                            .help("Custom output filename. Otherwise, we follow standard conventions, which will not work correctly if your input does not follow standard conventions."))
-                    .next_help_heading("Compression")
-                    .arg(
-                        Arg::new("crx1")
-                            .long("crx1")
-                            .conflicts_with("crx3")
-                            .action(ArgAction::SetTrue)
-                            .help("Force to CRINEX1 compression."),
-                    )
-                    .arg(
-                        Arg::new("crx3")
-                            .long("crx3")
-                            .conflicts_with("crx1")
-                            .action(ArgAction::SetTrue)
-                            .help("Force to CRINEX3 compression."),
+                            .help("Define custom output name. Overrides any file name determination logic.")
                     )
                     .arg(
                         Arg::new("date")
                             .short('d')
-                            .long("date")
-                            .help("Set compression date, expects %Y-%m-%d description"),
+                            .help("Set compression date. Example: -d 2024-01-01"),
                     )
                     .arg(
                         Arg::new("time")
                             .short('t')
                             .long("time")
-                            .help("Set compression time, expects %HH:%MM:%SS description"),
+                            .help("Set compression time. Example: -t 00:00:00")
                     )
                     .get_matches()
             },
@@ -77,13 +56,7 @@ Both will not work well if your input does not follow standard conventions at al
     pub fn output_path(&self) -> Option<&String> {
         self.matches.get_one::<String>("output")
     }
-    pub fn crx1(&self) -> bool {
-        self.matches.get_flag("crx1")
-    }
-    pub fn crx3(&self) -> bool {
-        self.matches.get_flag("crx3")
-    }
-    pub fn date(&self) -> Option<Epoch> {
+    pub fn custom_date(&self) -> Option<Epoch> {
         if let Some(s) = self.matches.get_one::<String>("date") {
             let items: Vec<&str> = s.split('-').collect();
             if items.len() != 3 {
@@ -99,7 +72,7 @@ Both will not work well if your input does not follow standard conventions at al
         }
         None
     }
-    pub fn time(&self) -> Option<(u8, u8, u8)> {
+    pub fn custom_time(&self) -> Option<(u8, u8, u8)> {
         if let Some(s) = self.matches.get_one::<String>("time") {
             let items: Vec<&str> = s.split(':').collect();
             if items.len() != 3 {

@@ -1,30 +1,17 @@
 mod cli;
 use cli::Cli;
-use rinex::{prelude::*, Error};
-fn main() -> Result<(), Error> {
+
+use rinex::prelude::Rinex;
+
+fn main() {
     let cli = Cli::new();
     let input_path = cli.input_path();
 
-    let mut rinex = Rinex::from_file(input_path)?; // parse
+    let mut rinex =
+        Rinex::from_file(input_path).unwrap_or_else(|e| panic!("RINEX parsing error: {}", e));
 
-    println!("Compressing \"{}\"..", input_path);
     rinex.rnx2crnx_mut();
 
-    // compression attributes
-    if cli.crx1() {
-        if let Some(obs) = &mut rinex.header.obs {
-            if let Some(crx) = &mut obs.crinex {
-                crx.version.major = 1; // force to V1
-            }
-        }
-    }
-    if cli.crx3() {
-        if let Some(obs) = &mut rinex.header.obs {
-            if let Some(crx) = &mut obs.crinex {
-                crx.version.major = 3; // force to V3
-            }
-        }
-    }
     if let Some(date) = cli.date() {
         let (y, m, d, _, _, _, _) = date.to_gregorian_utc();
         if let Some((hh, mm, ss)) = cli.time() {
@@ -56,5 +43,4 @@ fn main() -> Result<(), Error> {
 
     rinex.to_file(&output_path)?;
     println!("{} generated", output_path);
-    Ok(())
 }
