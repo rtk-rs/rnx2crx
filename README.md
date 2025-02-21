@@ -13,6 +13,8 @@ replacement of the historical tool.
 
 This tool is based on the [GeoRust/RINEX parser](https://github.com/georust/rinex).
 
+:warning: this tool is work in progress
+
 ## Download the tool
 
 You can download the latest version from [the release portal](https://github.com/rtk-rs/rnx2crx/releases)

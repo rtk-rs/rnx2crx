@@ -1,5 +1,7 @@
 use clap::{Arg, ArgAction, ArgMatches, ColorChoice, Command};
 
+use std::path::{Path, PathBuf};
+
 pub struct Cli {
     /// arguments passed by user
     pub matches: ArgMatches,
@@ -71,8 +73,8 @@ impl Cli {
         self.matches.get_flag("short")
     }
 
-    pub fn input_path(&self) -> &str {
-        self.matches.get_one::<String>("filepath").unwrap()
+    pub fn input_path(&self) -> PathBuf {
+        Path::new(self.matches.get_one::<String>("filepath").unwrap()).to_path_buf()
     }
 
     pub fn custom_name(&self) -> Option<&String> {
