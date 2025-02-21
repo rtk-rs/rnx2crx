@@ -28,10 +28,17 @@ fn main() {
 
     let quiet = cli.quiet();
     let input_path = cli.input_path();
+    let input_path_str = input_path.to_string_lossy().to_string();
 
-    let mut rinex =
-        Rinex::from_file(input_path).unwrap_or_else(|e| panic!("RINEX parsing error: {}", e));
+    let gzip_input = input_path_str.ends_with(".gz");
 
+    let rinex = if gzip_input {
+        Rinex::from_gzip_file(input_path)
+    } else {
+        Rinex::from_file(input_path)
+    };
+
+    let mut rinex = rinex.unwrap_or_else(|e| panic!("RINEX parsing error: {}", e));
     rinex.rnx2crnx_mut();
 
     let version_major;
